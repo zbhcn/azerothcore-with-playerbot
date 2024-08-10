@@ -408,6 +408,8 @@ public:
             summons.DespawnEntry(NPC_PARASITIC_SHADOWFIEND);
             _JustDied();
             events2.Reset();//防止卡战斗
+            if (Creature* akama = instance->GetCreature(DATA_AKAMA_ILLIDAN))
+                akama->DespawnOrUnsummon();
         }
 
         void KilledUnit(Unit*  /*victim*/) override
@@ -1281,44 +1283,35 @@ public:
             {
                 if (Unit* target = GetTarget())
                 {
+                    target->ToCreature()->DespawnOrUnsummon(240 * IN_MILLISECONDS);//防止卡战斗
                     if (target->GetDistance2d(caster) > 25.0f)
                     {
                         SetDuration(0); //狂暴
                         target->CastSpell(target, SPELL_UNCAGED_WRATH, true);
-                        //Remove();
                     }
-                    //bool foundValidPlayer = false;
+                    //if(target->AttackStop() && target->IsFullHealth() && !target->GetTarget() && !target->isMoving() && !target->GetVictim())
+                    //    target->ToCreature()->DespawnOrUnsummon();//防止卡战斗
                     Map::PlayerList const& pl = caster->GetMap()->GetPlayers();
                     for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+                    {
                         if (Player* player = itr->GetSource())
                         {
                             if (player->IsAlive() && !player->IsGameMaster() && target->GetDistance(player) < 200.0f)
                             {
-                                //foundValidPlayer = true; // 找到至少一个符合条件的玩家
                                 if (target->GetDistance(player) > 50.0f)
                                 {
                                     target->CastSpell(player, SPELL_CHARGE, true);
                                     target->CastSpell(target, SPELL_UNCAGED_WRATH, true);
-                                    break;
+                                    //break;
                                 }
-                            }
+                            }                              
                         }
-                    //if (!target->SelectNearestPlayer(100.0f))
-                    if (!target->IsInCombat() && !target->GetVictim())
-                        target->ToCreature()->DespawnOrUnsummon(); // 目标消失或解除召唤防止灭团卡战斗
+                    }
+                    //if (!pList.empty())
+                        //target->ToCreature()->DespawnOrUnsummon();//防止卡战斗
                 }
             }
         }
-        // xinef: ugly hax, dunno how it really works on blizz
-        //Map::PlayerList const& pl = GetTarget()->GetMap()->GetPlayers();
-        //for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-        //    if (Player* player = itr->GetSource())
-        //        if (player->GetPositionX() > 693.4f || player->GetPositionY() < 271.8f || player->GetPositionX() < 658.43f || player->GetPositionY() > 338.68f)
-        //        {
-        //            GetTarget()->CastSpell(player, SPELL_CHARGE, true);
-        //            GetTarget()->CastSpell(GetTarget(), SPELL_UNCAGED_WRATH, true);//狂暴
-        //            break;
-        //        }
 
         void Register() override
         {
@@ -1329,6 +1322,47 @@ public:
     AuraScript* GetAuraScript() const override
     {
         return new spell_illidan_tear_of_azzinoth_summon_channel_AuraScript();
+    }
+};
+
+// 40631 - Flame Blast
+class spell_illidan_flame_blast : public SpellScript
+{
+    PrepareSpellScript(spell_illidan_flame_blast);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_BLAZE_SUMMON });
+    }
+
+    void HandleBlaze(SpellEffIndex /*effIndex*/)
+    {
+        Unit* target = GetHitUnit();
+        if (target->GetTypeId() == TYPEID_PLAYER)
+            target->CastSpell(target, SPELL_BLAZE_SUMMON, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_illidan_flame_blast::HandleBlaze, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
+// 39873 - Glaive Returns
+class spell_illidan_return_glaives : public SpellScript
+{
+    PrepareSpellScript(spell_illidan_return_glaives);
+
+    void HandleScriptEffect(SpellEffIndex /*effIndex*/)
+    {
+        GetHitUnit()->SendPlaySpellVisual(7668);
+        if (Creature* caster = GetCaster()->ToCreature())
+            caster->DespawnOrUnsummon();
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_illidan_return_glaives::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
     }
 };
 
@@ -1648,5 +1682,7 @@ void AddSC_boss_illidan()
     new spell_illidan_found_target();
     new spell_illidan_cage_trap();
     new spell_illidan_cage_trap_stun();
+    new spell_illidan_return_glaives();
+    //new spell_illidan_flame_blast();
     //new npc_shadow_demon();
 }

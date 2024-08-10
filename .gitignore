@@ -95,3 +95,4 @@ local.properties
 # ==================
 .cache
 compile_commands.json
+src/server/scripts/Outland/BlackTemple/boss_illidan-old.cpp
