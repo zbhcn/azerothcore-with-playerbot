@@ -19,7 +19,7 @@ bool InviteToGroupAction::Execute(Event event)
 
 bool InviteToGroupAction::Invite(Player* player)
 {
-    if (!player)
+    if (!player || !player->IsInWorld())
         return false;
     //Bots no longer try to invite themselves to groups
     if (player == bot)
