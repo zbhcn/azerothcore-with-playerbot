@@ -616,7 +616,7 @@ void ChatReplyAction::ChatReplyDo(Player* bot, uint32 type, uint32 guid1, uint32
                 }
             }
 
-            if (type == CHAT_MSG_SAY)
+            else if (type == CHAT_MSG_SAY)
             {
                 if (bot->GetTeamId() == TEAM_ALLIANCE)
                     bot->Say(respondsText, LANG_COMMON);
@@ -624,7 +624,7 @@ void ChatReplyAction::ChatReplyDo(Player* bot, uint32 type, uint32 guid1, uint32
                     bot->Say(respondsText, LANG_ORCISH);
             }
 
-            if (type == CHAT_MSG_YELL)
+            else if (type == CHAT_MSG_YELL)
             {
                 if (bot->GetTeamId() == TEAM_ALLIANCE)
                     bot->Yell(respondsText, LANG_COMMON);
@@ -632,7 +632,7 @@ void ChatReplyAction::ChatReplyDo(Player* bot, uint32 type, uint32 guid1, uint32
                     bot->Yell(respondsText, LANG_ORCISH);
             }
 
-            if (type == CHAT_MSG_GUILD)
+            else if (type == CHAT_MSG_GUILD)
             {
                 if (!bot->GetGuildId())
                     return;

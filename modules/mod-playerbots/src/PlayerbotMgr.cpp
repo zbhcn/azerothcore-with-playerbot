@@ -506,7 +506,7 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
             Channel* new_channel = nullptr;
             if (isLfg)
             {
-                std::string lfgChannelName = channel->pattern[0];
+                std::string lfgChannelName = channel->pattern[sWorld->GetDefaultDbcLocale()];
                 new_channel = cMgr->GetJoinChannel("寻求组队", channel->ChannelID);
             }
             else
