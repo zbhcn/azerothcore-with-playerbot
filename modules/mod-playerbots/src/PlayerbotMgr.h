@@ -6,10 +6,11 @@
 #define _PLAYERBOT_PLAYERBOTMGR_H
 
 #include "Common.h"
-#include "QueryHolder.h"
-#include "QueryResult.h"
+#include "ObjectGuid.h"
 #include "Player.h"
 #include "PlayerbotAIBase.h"
+#include "QueryHolder.h"
+#include "QueryResult.h"
 
 class ChatHandler;
 class PlayerbotAI;
@@ -53,6 +54,7 @@ class PlayerbotHolder : public PlayerbotAIBase
         virtual void OnBotLoginInternal(Player* const bot) = 0;
 
         PlayerBotMap playerBots;
+        std::unordered_set<ObjectGuid> botLoading;
 };
 
 class PlayerbotMgr : public PlayerbotHolder

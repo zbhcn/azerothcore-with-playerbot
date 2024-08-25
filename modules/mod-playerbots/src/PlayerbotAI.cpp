@@ -3213,36 +3213,39 @@ bool PlayerbotAI::HasAuraToDispel(Unit* target, uint32 dispelType)
         return false;
     }
     bool isFriend = bot->IsFriendlyTo(target);
-    for (uint32 type = SPELL_AURA_NONE; type < TOTAL_AURAS; ++type)
+    Unit::VisibleAuraMap const* visibleAuras = target->GetVisibleAuras();
+    for (Unit::VisibleAuraMap::const_iterator itr = visibleAuras->begin(); itr != visibleAuras->end(); ++itr)
     {
-        Unit::AuraEffectList const& auras = target->GetAuraEffectsByType((AuraType)type);
-        for (AuraEffect const* aurEff : auras)
-        {
-            Aura const* aura = aurEff->GetBase();
-            SpellInfo const* spellInfo = aura->GetSpellInfo();
+        Aura* aura = itr->second->GetBase();
 
-            bool isPositiveSpell = spellInfo->IsPositive();
-            if (isPositiveSpell && isFriend)
-                continue;
+        if (aura->IsPassive())
+            continue;
 
-            if (!isPositiveSpell && !isFriend)
-                continue;
+        if (sPlayerbotAIConfig->dispelAuraDuration && aura->GetDuration() &&
+            aura->GetDuration() < (int32)sPlayerbotAIConfig->dispelAuraDuration)
+            continue;
 
-            if (sPlayerbotAIConfig->dispelAuraDuration && aura->GetDuration() && aura->GetDuration() < (int32)sPlayerbotAIConfig->dispelAuraDuration)
-                continue;
+        SpellInfo const* spellInfo = aura->GetSpellInfo();
 
-            if (canDispel(spellInfo, dispelType))
-                return true;
-        }
+        bool isPositiveSpell = spellInfo->IsPositive();
+        if (isPositiveSpell && isFriend)
+            continue;
+
+        if (!isPositiveSpell && !isFriend)
+            continue;
+
+        if (canDispel(spellInfo, dispelType))
+            return true;
     }
     return false;
 }
-
 #ifndef WIN32
 inline int strcmpi(char const* s1, char const* s2)
 {
-    for (; *s1 && *s2 && (toupper(*s1) == toupper(*s2)); ++s1, ++s2) {}
-        return *s1 - *s2;
+    for (; *s1 && *s2 && (toupper(*s1) == toupper(*s2)); ++s1, ++s2)
+    {
+}
+    return *s1 - *s2;
 }
 #endif
 
@@ -4312,34 +4315,42 @@ static const uint32 uPriorizedManaOilIds[4] =
 
 Item* PlayerbotAI::FindOilFor(Item* weapon) const
 {
-    Item* oil = nullptr;
-    ItemTemplate const* pProto = weapon->GetTemplate();
-    if (pProto && (pProto->SubClass == ITEM_SUBCLASS_WEAPON_SWORD || pProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF || pProto->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER))
-    {
-        for (uint8 i = 0; i < std::size(uPriorizedWizardOilIds); ++i)
-        {
-            oil = FindConsumable(uPriorizedWizardOilIds[i]);
-            if (oil)
-                return oil;
-        }
+    if (!weapon)
+        return nullptr;
 
-        for (uint8 i = 0; i < std::size(uPriorizedManaOilIds); ++i)
+    const ItemTemplate* item_template = weapon->GetTemplate();
+    if (!item_template)
+        return nullptr;
+
+    // static const will only get created once whatever the call amout
+    static const std::vector<uint32_t> uPriorizedWizardOilIds = {
+        MINOR_WIZARD_OIL,   MINOR_MANA_OIL, LESSER_WIZARD_OIL, LESSER_MANA_OIL,    BRILLIANT_WIZARD_OIL,
+        BRILLIANT_MANA_OIL, WIZARD_OIL,     SUPERIOR_MANA_OIL, SUPERIOR_WIZARD_OIL };
+
+    // static const will only get created once whatever the call amout
+    static const std::vector<uint32_t> uPriorizedManaOilIds = {
+        MINOR_MANA_OIL,       MINOR_WIZARD_OIL,  LESSER_MANA_OIL, LESSER_WIZARD_OIL,  BRILLIANT_MANA_OIL,
+        BRILLIANT_WIZARD_OIL, SUPERIOR_MANA_OIL, WIZARD_OIL,      SUPERIOR_WIZARD_OIL };
+
+    Item* oil = nullptr;
+    if (item_template->SubClass == ITEM_SUBCLASS_WEAPON_SWORD ||
+        item_template->SubClass == ITEM_SUBCLASS_WEAPON_STAFF || item_template->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER)
+    {
+        for (const auto& id : uPriorizedWizardOilIds)
         {
-            oil = FindConsumable(uPriorizedManaOilIds[i]);
+            oil = FindConsumable(id);
             if (oil)
                 return oil;
         }
     }
-    else if (pProto && (pProto->SubClass == ITEM_SUBCLASS_WEAPON_MACE || pProto->SubClass == ITEM_SUBCLASS_WEAPON_MACE2))
+    else if (item_template->SubClass == ITEM_SUBCLASS_WEAPON_MACE ||
+        item_template->SubClass == ITEM_SUBCLASS_WEAPON_MACE2)
     {
-        for (uint8 i = 0; i < std::size(uPriorizedManaOilIds); ++i)
+        for (const auto& id : uPriorizedManaOilIds)
         {
-            oil = FindConsumable(uPriorizedManaOilIds[i]);
-            if (!oil)
-            oil = FindConsumable(uPriorizedWizardOilIds[i]);
-
+            oil = FindConsumable(id);
             if (oil)
-            return oil;
+                return oil;
         }
     }
 

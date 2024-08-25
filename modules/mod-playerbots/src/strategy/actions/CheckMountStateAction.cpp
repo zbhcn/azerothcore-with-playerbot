@@ -119,8 +119,8 @@ bool CheckMountStateAction::isUseful()
     if (bot->isDead())
         return false;
 
-    bool isOutdoor = bot->IsOutdoors();
-    if (!isOutdoor)
+    if (!bot->IsOutdoors() || bot->GetPositionZ() < bot->GetMapWaterOrGroundLevel(
+        bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ()))
         return false;
 
     if (bot->HasUnitState(UNIT_STATE_IN_FLIGHT))

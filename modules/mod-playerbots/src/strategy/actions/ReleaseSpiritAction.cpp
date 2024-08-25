@@ -112,16 +112,23 @@ bool AutoReleaseSpiritAction::Execute(Event event)
         if (!guid) {
             return true;
         }
-        if (bot->GetDistance(unit) >= INTERACTION_DISTANCE) {
-            bot->GetMotionMaster()->MoveChase(unit);
-        } else {
+        if (bot->GetDistance(unit) >= INTERACTION_DISTANCE)
+        {
+            // bot needs to actually click spirit-healer in BG to get res timer going
+            // and in IOC it's not within clicking range when they res in own base
+            MotionMaster& mm = *bot->GetMotionMaster();
+            mm.Clear();
+            mm.MovePoint(bot->GetMapId(), unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(), true);
+        }
+        else if (!botAI->IsRealPlayer()) // below doesnt work properly on realplayer, but its also not needed
+        {
             bg_gossip_time = time(NULL);
             WorldPacket packet(CMSG_GOSSIP_HELLO);
             packet << guid;
             bot->GetSession()->HandleGossipHelloOpcode(packet);
         }
     }
-
+    botAI->SetNextCheckDelay(1000);
     return true;
 }
 

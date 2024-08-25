@@ -41,6 +41,9 @@ class PlayerbotLoginQueryHolder : public LoginQueryHolder
 
 void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId)
 {
+    // bot is loading
+    if (botLoading.find(playerGuid) != botLoading.end())
+        return;
     // has bot already been added?
     Player* bot = ObjectAccessor::FindConnectedPlayer(playerGuid);
     if (bot && bot->IsInWorld())
@@ -55,6 +58,8 @@ void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId
     {
         return;
     }
+
+    botLoading.insert(playerGuid);
 
     if (WorldSession* masterSession = sWorld->FindSession(masterAccountId))
     {
@@ -74,12 +79,6 @@ void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId
 
 void PlayerbotHolder::HandlePlayerBotLoginCallback(PlayerbotLoginQueryHolder const& holder)
 {
-    // has bot already been added?
-    Player* loginBot = ObjectAccessor::FindConnectedPlayer(holder.GetGuid());
-    if (loginBot && loginBot->IsInWorld()) {
-        return;
-    }
-
     uint32 botAccountId = holder.GetAccountId();
 
     WorldSession* botSession = new WorldSession(botAccountId, "", nullptr, SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, time_t(0), LOCALE_enUS, 0, false, false, 0, true);
@@ -89,8 +88,9 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(PlayerbotLoginQueryHolder con
     Player* bot = botSession->GetPlayer();
     if (!bot)
     {
-        LogoutPlayerBot(holder.GetGuid());
-        // LOG_ERROR("playerbots", "Error logging in bot {}, please try to reset all random bots", holder.GetGuid().ToString().c_str());
+        botSession->LogoutPlayer(true);
+        delete botSession;
+        botLoading.erase(holder.GetGuid());
         return;
     }
 
@@ -108,6 +108,7 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(PlayerbotLoginQueryHolder con
 
     if (allowed)
     {
+        sRandomPlayerbotMgr->OnPlayerLogin(bot);
         OnBotLogin(bot);
     }
     else
@@ -117,11 +118,14 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(PlayerbotLoginQueryHolder con
             ChatHandler ch(masterSession);
             ch.PSendSysMessage("You are not allowed to control bot %s", bot->GetName());
         }
-        OnBotLogin(bot);
-        LogoutPlayerBot(bot->GetGUID());
+        botSession->LogoutPlayer(true);
+        delete botSession;
+        //OnBotLogin(bot);
+        //LogoutPlayerBot(bot->GetGUID());
 
         // LOG_ERROR("playerbots", "Attempt to add not allowed bot {}, please try to reset all random bots", bot->GetName());
     }
+    botLoading.erase(holder.GetGuid());
 }
 
 void PlayerbotHolder::UpdateSessions()
@@ -464,7 +468,7 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
         bot->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
     }
 
-    bot->SaveToDB(false, false);
+    //bot->SaveToDB(false, false);
     if (master && isRandomAccount && master->GetLevel() < bot->GetLevel()) {
         // PlayerbotFactory factory(bot, master->getLevel());
         // factory.Randomize(false);

@@ -1576,7 +1576,7 @@ bool AvoidAoeAction::AvoidAuraWithDynamicObj()
             lastTellTimer = time(NULL);
             lastMoveTimer = getMSTime();
             std::ostringstream out;
-            out << "I'm avoiding " << name.str() << "...";
+            out << "我正在躲技能 " << name.str() << "...";
             bot->Say(out.str(), LANG_UNIVERSAL);
         }
         return true;
@@ -1683,7 +1683,7 @@ bool AvoidAoeAction::AvoidUnitWithDamageAura()
                                 lastTellTimer = time(NULL);
                                 lastMoveTimer = getMSTime();
                                 std::ostringstream out;
-                                out << "I'm avoiding " << name.str() << "...";
+                                out << "我正在躲技能 " << name.str() << "...";
                                 bot->Say(out.str(), LANG_UNIVERSAL);
                             }
                         }

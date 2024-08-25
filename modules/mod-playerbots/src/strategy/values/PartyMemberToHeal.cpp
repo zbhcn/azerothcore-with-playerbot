@@ -29,47 +29,62 @@ inline bool compareByHealth(Unit const* u1, Unit const* u2)
 
 Unit* PartyMemberToHeal::Calculate()
 {
-
     IsTargetOfHealingSpell predicate;
-
     Group* group = bot->GetGroup();
     if (!group)
         return bot;
-
     bool isRaid = bot->GetGroup()->isRaidGroup();
     MinValueCalculator calc(100);
-    
-    for (GroupReference *gref = group->GetFirstMember(); gref; gref = gref->next())
+    for (GroupReference* gref = group->GetFirstMember(); gref; gref = gref->next())
     {
         Player* player = gref->GetSource();
-        //优先确保T优先级30%
-        if(player && Check(player) && player->IsAlive() && player->HasTankSpec() &&
-            player->GetHealthPct() < sPlayerbotAIConfig->mediumHealth)
-            calc.probe(30, player);
-
-        if (player && Check(player) && player->IsAlive()) {
+        if (player && player->IsAlive())
+        {
             uint8 health = player->GetHealthPct();
-            if (isRaid || health < sPlayerbotAIConfig->mediumHealth || !IsTargetOfSpellCast(player, predicate)) {
-                if (player->GetDistance2d(bot) > sPlayerbotAIConfig->healDistance) {
-                    calc.probe(health + 30, player);
-                } else {
-                    calc.probe(health + player->GetDistance2d(bot) / 10, player);
+            if (isRaid || health < sPlayerbotAIConfig->mediumHealth || !IsTargetOfSpellCast(player, predicate))
+            {
+                uint32 probeValue = 100;
+                if (player->GetDistance2d(bot) > sPlayerbotAIConfig->healDistance)
+                {
+                    probeValue = health + 30;
+                }
+                else
+                {
+                    probeValue = health + player->GetDistance2d(bot) / 10;
+                }
+                // delay Check player to here for better performance
+                if (probeValue < calc.minValue && Check(player))
+                {
+                    calc.probe(probeValue, player);
                 }
             }
         }
-        if (player){
-            Pet* pet = player->GetPet();
-            if (pet && Check(pet) && pet->IsAlive()) {
-                uint8 health = ((Unit*)pet)->GetHealthPct();
-                if (isRaid || health < sPlayerbotAIConfig->mediumHealth)
-                    calc.probe(health + 30, pet);
-            }
 
-            Unit* charm = player->GetCharm();
-            if (charm && Check(charm) && charm->IsAlive()) {
-                uint8 health = charm->GetHealthPct();
-                if (isRaid || health < sPlayerbotAIConfig->mediumHealth)
-                    calc.probe(health, charm);
+        Pet* pet = player->GetPet();
+        if (pet && pet->IsAlive())
+        {
+            uint8 health = ((Unit*)pet)->GetHealthPct();
+            uint32 probeValue = 100;
+            if (isRaid || health < sPlayerbotAIConfig->mediumHealth)
+                probeValue = health + 30;
+            // delay Check pet to here for better performance
+            if (probeValue < calc.minValue && Check(pet))
+            {
+                calc.probe(probeValue, pet);
+            }
+        }
+
+        Unit* charm = player->GetCharm();
+        if (charm && charm->IsAlive())
+        {
+            uint8 health = charm->GetHealthPct();
+            uint32 probeValue = 100;
+            if (isRaid || health < sPlayerbotAIConfig->mediumHealth)
+                probeValue = health + 30;
+            // delay Check charm to here for better performance
+            if (probeValue < calc.minValue && Check(charm))
+            {
+                calc.probe(probeValue, charm);
             }
         }
     }

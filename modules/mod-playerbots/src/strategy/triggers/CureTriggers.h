@@ -36,6 +36,7 @@ class PartyMemberNeedCureTrigger : public NeedCureTrigger
         PartyMemberNeedCureTrigger(PlayerbotAI* botAI, std::string const spell, uint32 dispelType) : NeedCureTrigger(botAI, spell, dispelType) { }
 
 		Value<Unit*>* GetTargetValue() override;
+        bool IsActive() override;
 };
 
 class NeedWorldBuffTrigger : public Trigger
