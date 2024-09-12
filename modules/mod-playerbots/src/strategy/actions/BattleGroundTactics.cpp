@@ -3,6 +3,7 @@
  */
 
 #include "BattleGroundTactics.h"
+#include "BattleGroundJoinAction.h"
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
 #include "BattlegroundMgr.h"
@@ -2660,7 +2661,7 @@ bool BGTactics::Execute(Event event)
     }
 
     if (bg->GetStatus() == STATUS_WAIT_LEAVE)
-        return false;
+        return BGStatusAction::LeaveBG(botAI);
 
     if (bg->isArena())
     {
@@ -4478,14 +4479,19 @@ bool BGTactics::atFlag(std::vector<BattleBotPath*> const& vPaths, std::vector<ui
 
     if (!closePlayers.empty())
     {
-        for (auto & guid : closePlayers)
+        for (auto& guid : closePlayers)
         {
-            Unit* pFriend = botAI->GetUnit(guid);
-            if (pFriend->GetCurrentSpell(CURRENT_GENERIC_SPELL) && pFriend->GetCurrentSpell(CURRENT_GENERIC_SPELL)->m_spellInfo->Id == SPELL_CAPTURE_BANNER)
+            if (Unit* pFriend = botAI->GetUnit(guid))
             {
-                resetObjective();
-                startNewPathBegin(vPaths);
-                return false;
+                if (Spell* spell = pFriend->GetCurrentSpell(CURRENT_GENERIC_SPELL))
+                {
+                    if (spell->m_spellInfo->Id == SPELL_CAPTURE_BANNER)
+                    {
+                        resetObjective();
+                        startNewPathBegin(vPaths);
+                        return false;
+                    }
+                }
             }
         }
     }
@@ -4908,19 +4914,20 @@ bool ArenaTactics::Execute(Event event)
         return false;
     }
 
-    if (bot->GetBattleground()->GetStatus() != STATUS_IN_PROGRESS)
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return false;
+
+    if (bg->GetStatus() == STATUS_WAIT_LEAVE)
+        return BGStatusAction::LeaveBG(botAI);
+
+    if (bg->GetStatus() != STATUS_IN_PROGRESS)
         return false;
 
     if (bot->isDead())
-    {
         return false;
-    }
 
     if (bot->isMoving())
-        return false;
-
-    Battleground* bg = bot->GetBattleground();
-    if (!bg)
         return false;
 
     // startup phase

@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "Configuration/Config.h"
 #include "Chat.h"
+#include "../Server/game/Spells/Spell.h"
 
 // Enum for item qualities
 enum ItemQuality {
@@ -21,8 +22,18 @@ public:
     RandomEnchantsPlayer() : PlayerScript("RandomEnchantsPlayer") { }
 
     void OnLogin(Player* player) override {
-       if (sConfigMgr->GetOption<bool>("RandomEnchants.AnnounceOnLogin", true) && sConfigMgr->GetOption<bool>("RandomEnchants.Enable", true))
+        if (sConfigMgr->GetOption<bool>("RandomEnchants.AnnounceOnLogin", true) && sConfigMgr->GetOption<bool>("RandomEnchants.Enable", true))
             ChatHandler(player->GetSession()).SendSysMessage(sConfigMgr->GetOption<std::string>("RandomEnchants.OnLoginMessage", "This server is running a RandomEnchants Module.").c_str());
+    }
+
+    void OnStoreNewItem(Player* player, Item* item, uint32 /*count*/) override {
+        if (sConfigMgr->GetOption<bool>("RandomEnchants.OnCreate", true) && sConfigMgr->GetOption<bool>("RandomEnchants.Enable", true))
+        {
+            if (item->IsEnchanted())
+                return;
+            else
+                RollPossibleEnchant(player, item);
+        }
     }
 
     void OnLootItem(Player* player, Item* item, uint32 /*count*/, ObjectGuid /*lootguid*/) override {
@@ -35,6 +46,7 @@ public:
         }
     }
 
+    //void OnItemCreate(Item* item, ItemTemplate const* itemProto, Player* player) {
     void OnCreateItem(Player* player, Item* item, uint32 /*count*/) override {
         if (sConfigMgr->GetOption<bool>("RandomEnchants.OnCreate", true) && sConfigMgr->GetOption<bool>("RandomEnchants.Enable", true))
         {
@@ -84,7 +96,7 @@ public:
         uint32 Class = item->GetTemplate()->Class;
 
         if (
-            (Quality > 5 || Quality < 1) /* eliminates enchanting anything that isn't a recognized quality */ ||
+            (Quality > 5 || Quality < 1 || item->GetTemplate()->ItemLevel < 110) /* eliminates enchanting anything that isn't a recognized quality */ ||
             (Class != 2 && Class != 4) /* eliminates enchanting anything but weapons/armor */) {
             return;
         }
@@ -175,12 +187,66 @@ public:
             tier = 5;
 
         QueryResult qr = WorldDatabase.Query("SELECT enchantID FROM item_enchantment_random_tiers WHERE tier='{}' AND exclusiveSubClass=NULL AND class='{}' OR exclusiveSubClass='{}' OR class='ANY' ORDER BY RAND() LIMIT 1", tier, ClassQueryString, item->GetTemplate()->SubClass);
+        if (!qr)
+            return -1;
         return qr->Fetch()[0].Get<uint32>();
+    }
+};
+
+class XilianRandomEnchantItem : public ItemScript {
+public:
+    XilianRandomEnchantItem() : ItemScript("XilianRandomEnchantItem") {}
+
+    bool OnUse(Player* player, Item* self, SpellCastTargets const& targets) override {
+        Item* item = targets.GetItemTarget();
+
+        // 如果目标物品为空，直接返回 true，避免后续操作
+        if (!item) {
+            ChatHandler(player->GetSession()).PSendSysMessage("目标物品无效，无法洗练。");
+            return true;
+        }
+
+        // 获取物品的背包槽位和插槽，确保它们有效
+        uint8 bagSlot = item->GetBagSlot();
+        uint8 slot = item->GetSlot();
+        uint8 selfbagSlot = self->GetBagSlot();
+        uint8 selfslot = self->GetSlot();
+
+        // 检查物品槽位有效性
+        if (bagSlot == INVENTORY_SLOT_BAG_0 || slot == NULL_SLOT) {
+            ChatHandler(player->GetSession()).PSendSysMessage("无法识别物品的位置，操作失败。");
+            return true;
+        }
+
+        // 直接调用 RollPossibleEnchant 方法为物品应用随机附魔
+        //RandomEnchantsPlayer().RollPossibleEnchant(player, item);
+
+        // 销毁目标物品
+        uint32 selfEntry = self->GetEntry();
+        uint32 itemEntry = item->GetEntry();  // 保存物品的Entry
+        player->DestroyItem(bagSlot, slot, true);
+
+        // 销毁洗练物品自身
+        player->DestroyItem(selfbagSlot, selfslot, true);
+
+        // 发送成功消息
+        //ChatHandler(player->GetSession()).PSendSysMessage("随机附魔属性洗练成功");
+
+        // 重新添加被洗练的物品
+        if (player->AddItem(itemEntry, 1)) {
+            // 成功添加新物品，发送确认消息
+            ChatHandler(player->GetSession()).PSendSysMessage("随机附魔属性洗练成功");
+        }
+        else {
+            // 如果添加新物品失败，发送错误消息
+            ChatHandler(player->GetSession()).PSendSysMessage("物品洗练失败，可能是背包已满。");
+        }
+
+        return true;
     }
 };
 
 void AddRandomEnchantsScripts() {
     new RandomEnchantsPlayer();
+    new XilianRandomEnchantItem();
 }
-
-

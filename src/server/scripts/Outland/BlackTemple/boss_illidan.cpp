@@ -1283,7 +1283,7 @@ public:
             {
                 if (Unit* target = GetTarget())
                 {
-                    target->ToCreature()->DespawnOrUnsummon(240 * IN_MILLISECONDS);//防止卡战斗
+                    target->ToCreature()->DespawnOrUnsummon(190 * IN_MILLISECONDS);//防止卡战斗
                     if (target->GetDistance2d(caster) > 25.0f)
                     {
                         SetDuration(0); //狂暴

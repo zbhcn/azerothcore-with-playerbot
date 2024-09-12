@@ -115,8 +115,13 @@ public:
         std::list<Creature*> cList;
         _caster->GetCreaturesWithEntryInRange(cList, 70.0f, NPC_FOG_TRIGGER);
         for (std::list<Creature*>::const_iterator itr = cList.begin(); itr != cList.end(); ++itr)
-            if (_caster->GetExactDist2d(*itr) <= 11.0f)
+        {
+            //if (_caster->GetExactDist2d(*itr) <= 11.0f)//降低难度
+            if (_caster->GetExactDist2d(*itr) <= 1.0f)
+            {
                 (*itr)->CastSpell(*itr, SPELL_FOG_OF_CORRUPTION, true);
+            }
+        }
         return true;
     }
 
@@ -264,7 +269,8 @@ public:
                     events.ScheduleEvent(EVENT_SPELL_BERSERK, 600000);
                     me->SetInCombatWithZone();
                     me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    me->CastSpell(me, SPELL_NOXIOUS_FUMES, true);
+                    //删除毒气技能
+                    //me->CastSpell(me, SPELL_NOXIOUS_FUMES, true);
                     me->GetMotionMaster()->MovePoint(POINT_MISC, 1472.18f, 603.38f, 34.0f, false, true);
                     break;
             }
@@ -441,9 +447,11 @@ public:
         npc_demonic_vapor_trailAI(Creature* creature) : NullCreatureAI(creature)
         {
             timer = 1;
+            summonCount = 0;
         }
 
         uint32 timer;
+        uint32 summonCount; // 追踪当前已召唤的小怪数量
         void Reset() override
         {
             me->CastSpell(me, SPELL_DEMONIC_VAPOR_TRAIL_PERIODIC, true);
@@ -452,7 +460,12 @@ public:
         void SpellHitTarget(Unit*, SpellInfo const* spellInfo) override
         {
             if (spellInfo->Id == SPELL_DEMONIC_VAPOR)
-                me->CastSpell(me, SPELL_SUMMON_BLAZING_DEAD, true);
+            {
+                if (summonCount < 6) // 只在召唤的小怪数量少于6个时进行召唤
+                {
+                    me->CastSpell(me, SPELL_SUMMON_BLAZING_DEAD, true);
+                }
+            }
         }
 
         void UpdateAI(uint32 diff) override
@@ -463,15 +476,24 @@ public:
                 if (timer >= 6000)
                 {
                     timer = 0;
-                    me->CastSpell(me, SPELL_SUMMON_BLAZING_DEAD, true);
+                    if (summonCount < 6) // 只在召唤的小怪数量少于6个时进行召唤
+                    {
+                        me->CastSpell(me, SPELL_SUMMON_BLAZING_DEAD, true);
+                    }
                 }
             }
         }
 
         void JustSummoned(Creature* summon) override
         {
+            summonCount++; // 每次召唤时增加计数
             summon->SetInCombatWithZone();
             summon->AI()->AttackStart(summon->AI()->SelectTarget(SelectTargetMethod::Random, 0, 100.0f));
+        }
+
+        void SummonedCreatureDespawn(Creature* summon) override
+        {
+            summonCount--; // 当召唤物消失时减少计数
         }
     };
 };

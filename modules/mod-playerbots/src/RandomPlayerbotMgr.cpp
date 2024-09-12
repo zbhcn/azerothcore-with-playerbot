@@ -606,18 +606,22 @@ void RandomPlayerbotMgr::CheckBgQueue()
     if (!BgCheckTimer)
         BgCheckTimer = time(nullptr);
 
-    uint32 count = 0;
-    uint32 visual_count = 0;
+    //uint32 count = 0;
+    //uint32 visual_count = 0;
 
-    uint32 check_time = count > 0 ? 120 : 30;
-    if (time(nullptr) < (BgCheckTimer + check_time))
-    {
+    //uint32 check_time = count > 0 ? 120 : 30;
+    //if (time(nullptr) < (BgCheckTimer + check_time))
+    //{
+    //    return;
+    //}
+    //else
+    //{
+    //    BgCheckTimer = time(nullptr);
+    //}
+    if (time(nullptr) < BgCheckTimer + 30)
         return;
-    }
-    else
-    {
-        BgCheckTimer = time(nullptr);
-    }
+
+    BgCheckTimer = time(nullptr);
 
     LOG_INFO("playerbots", "Checking BG Queue...");
 
@@ -643,7 +647,9 @@ void RandomPlayerbotMgr::CheckBgQueue()
         if (!player->InBattlegroundQueue())
             continue;
 
-        if (player->InBattleground() && player->GetBattleground()->GetStatus() == STATUS_WAIT_LEAVE)
+        //if (player->InBattleground() && player->GetBattleground()->GetStatus() == STATUS_WAIT_LEAVE)
+        Battleground* bg = player->GetBattleground();
+        if (bg && bg->GetStatus() == STATUS_WAIT_LEAVE)
             continue;
 
         for (uint8 i = 0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; ++i)
@@ -655,7 +661,8 @@ void RandomPlayerbotMgr::CheckBgQueue()
             TeamId teamId = player->GetTeamId();
 
             BattlegroundTypeId bgTypeId = sBattlegroundMgr->BGTemplateId(queueTypeId);
-            Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
+            //Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
+            bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
             uint32 mapId = bg->GetMapId();
             PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, player->getLevel());
             if (!pvpDiff)
@@ -733,7 +740,9 @@ void RandomPlayerbotMgr::CheckBgQueue()
         if (!IsRandomBot(bot))
             continue;
 
-        if (bot->InBattleground() && bot->GetBattleground()->GetStatus() == STATUS_WAIT_LEAVE)
+        //if (bot->InBattleground() && bot->GetBattleground()->GetStatus() == STATUS_WAIT_LEAVE)
+        Battleground* bg = bot->GetBattleground();
+        if (bg && bg->GetStatus() == STATUS_WAIT_LEAVE)
             continue;
 
         for (uint8 i = 0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; ++i)
@@ -745,7 +754,8 @@ void RandomPlayerbotMgr::CheckBgQueue()
             TeamId teamId = bot->GetTeamId();
 
             BattlegroundTypeId bgTypeId = sBattlegroundMgr->BGTemplateId(queueTypeId);
-            Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
+            //Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
+            bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
             uint32 mapId = bg->GetMapId();
             PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, bot->getLevel());
             if (!pvpDiff)

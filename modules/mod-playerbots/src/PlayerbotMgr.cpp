@@ -343,7 +343,7 @@ void PlayerbotHolder::DisablePlayerBot(ObjectGuid guid)
 
         //LOG_DEBUG("playerbots", "Bot {} logged out", bot->GetName().c_str());
 
-        bot->SaveToDB(false, false);
+        //bot->SaveToDB(false, false);
 
         if (botAI->GetAiObjectContext()) //Maybe some day re-write to delate all pointer values.
         {
@@ -745,6 +745,22 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
     }
 
     if (!strncmp(cmd, "initself=", 9)) {
+        if (!strcmp(cmd, "initself=uncommon"))
+        {
+            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            {
+                // OnBotLogin(master);
+                PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_UNCOMMON);
+                factory.Randomize(false);
+                messages.push_back("自身初始化完毕");
+                return messages;
+            }
+            else
+            {
+                messages.push_back("ERROR: 只有GM可以使用此指令.");
+                return messages;
+            }
+        }
         if (!strcmp(cmd, "initself=rare")) {
             if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER) {
                 // OnBotLogin(master);
@@ -765,6 +781,22 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 messages.push_back("initself ok");
                 return messages;
             } else {
+                messages.push_back("ERROR: Only GM can use this command.");
+                return messages;
+            }
+        }
+        if (!strcmp(cmd, "initself=legendary"))
+        {
+            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            {
+                // OnBotLogin(master);
+                PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_LEGENDARY);
+                factory.Randomize(false);
+                messages.push_back("initself ok");
+                return messages;
+            }
+            else
+            {
                 messages.push_back("ERROR: Only GM can use this command.");
                 return messages;
             }

@@ -3352,6 +3352,8 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
                         spell_bonus += (aur->GetStackAmount() - 1) * CalculateSpellDamage(2, unitTarget);
                     }
                 }
+                if (m_caster && m_caster->IsPlayer())
+                    AddPct(totalDamagePercentMod, 10.0f);//战士伤害增加10%
                 break;
             }
         case SPELLFAMILY_ROGUE:
@@ -3396,7 +3398,7 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
                         AddPct(totalDamagePercentMod, 20.0f);          // 120% if poisoned
                 }
                 if (m_caster && m_caster->IsPlayer())
-                    AddPct(totalDamagePercentMod, 150.0f);//盗贼伤害增加150%
+                    AddPct(totalDamagePercentMod, 50.0f);//盗贼伤害增加150%
                 break;
             }
         case SPELLFAMILY_PALADIN:

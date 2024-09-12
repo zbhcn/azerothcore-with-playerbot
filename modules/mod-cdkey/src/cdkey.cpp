@@ -223,7 +223,7 @@ public:
                 {
                     me->Say("你有兑换码吗?我这里有好东西!", LANG_UNIVERSAL, NULL);
                     me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-                    say_timer = 61000;
+                    say_timer = 610000;
                 }
             }
             else

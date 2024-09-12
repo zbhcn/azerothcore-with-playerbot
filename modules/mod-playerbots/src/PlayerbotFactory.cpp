@@ -1834,7 +1834,9 @@ bool PlayerbotFactory::CanEquipUnseenItem(uint8 slot, uint16 &dest, uint32 item)
 
     if (Item* pItem = Item::CreateItem(item, 1, bot, false, 0, true))
     {
-        InventoryResult result = bot->CanEquipItem(slot, dest, pItem, true, false);
+        //InventoryResult result = bot->CanEquipItem(slot, dest, pItem, true, false);
+        InventoryResult result = botAI ? botAI->CanEquipItem(slot, dest, pItem, true, true)
+            : bot->CanEquipItem(slot, dest, pItem, true, true);
         pItem->RemoveFromUpdateQueueOf(bot);
         delete pItem;
         return result == EQUIP_ERR_OK;
@@ -2146,9 +2148,9 @@ void PlayerbotFactory::InitAvailableSpells()
             if (tSpell->learnedSpell[0]) {
                 bot->learnSpell(tSpell->learnedSpell[0], false);
             }
-            else {
-                botAI->CastSpell(tSpell->spell, bot);
-            }
+            //else {
+            //    botAI->CastSpell(tSpell->spell, bot);
+            //}
         }
     }
 }

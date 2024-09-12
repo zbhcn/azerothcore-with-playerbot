@@ -48,7 +48,7 @@ public:
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|cffb50505NOT 激活|r", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
         else
         {
-            AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, "选择一件装备升级 (逐个属性)", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
+            //AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, "选择一件装备升级 (逐个属性)", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
             AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, "选择一件装备升级 (所有属性)", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 7);
             if (sItemUpgrade->GetBoolConfig(CONFIG_ITEM_UPGRADE_ALLOW_PURGE))
                 AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "清除升级", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 6);
@@ -58,7 +58,7 @@ public:
             if (player->GetSession()->GetSecurity() == SEC_ADMINISTRATOR)
                 AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "锁定当前升级数据", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 5, "在您使用item_upgrade reload命令释放锁之前，NPC将不再对玩家可用.", 0, false);
         }
-        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "没关系...", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "不需要了...", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
         SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
         return true;
     }

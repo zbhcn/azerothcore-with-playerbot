@@ -25,7 +25,8 @@ HealPaladinStrategy::HealPaladinStrategy(PlayerbotAI* botAI) : GenericPaladinStr
 
 NextAction** HealPaladinStrategy::getDefaultActions()
 {
-    return NextAction::array(0, new NextAction("judgement of light", ACTION_DEFAULT + 2), nullptr);
+    //return NextAction::array(0, new NextAction("judgement of light", ACTION_DEFAULT + 2), nullptr);
+    return NextAction::array(0, new NextAction("flash of light on party", ACTION_DEFAULT + 2), nullptr); 
 }
 
 void HealPaladinStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)

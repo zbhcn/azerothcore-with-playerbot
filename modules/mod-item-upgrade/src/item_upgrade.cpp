@@ -684,7 +684,7 @@ bool ItemUpgrade::_AddPagedData(Player* player, const PagedData& pagedData, uint
         {
             std::vector<_ItemStat> statTypes = LoadItemStatInfo(item);
             std::ostringstream ossStatTypes;
-            ossStatTypes << "有数据: ";
+            ossStatTypes << "可升级: ";
             for (uint32 i = 0; i < statTypes.size(); i++)
             {
                 if (IsAllowedStatType(statTypes[i].ItemStatType))
@@ -805,7 +805,7 @@ bool ItemUpgrade::_AddPagedData(Player* player, const PagedData& pagedData, uint
 
     if (!upgrades.empty())
     {
-        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "[所有需求]", GOSSIP_SENDER_MAIN + 1, GOSSIP_ACTION_INFO_DEF + 1);
+        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "[升级条件]", GOSSIP_SENDER_MAIN + 1, GOSSIP_ACTION_INFO_DEF + 1);
         StatRequirementContainer reqs = BuildBulkRequirements(upgrades, item);
         AddGossipItemFor(player, GOSSIP_ICON_TRAINER, (MeetsRequirement(player, &reqs) ? "|cff056e3a[全部升级]|r" : "|cffb50505[全部升级]|r"), GOSSIP_SENDER_MAIN + 1, GOSSIP_ACTION_INFO_DEF + 2, "您确定要升级吗?", 0, false);
     }
@@ -1283,9 +1283,9 @@ void ItemUpgrade::BuildRequirementsPage(const Player* player, PagedData& pagedDa
 
             oss << " - ";
             if (missing.empty())
-                oss << "|cff056e3a执行|r";
+                oss << "|cff056e3a已达条件|r";
             else
-                oss << "|cffb50505正在进行中|r" << " - " << missing;
+                oss << "|cffb50505尚未凑齐|r" << " - " << missing;
 
             Identifier* identifier = new Identifier();
             identifier->id = 0;
@@ -1318,13 +1318,13 @@ void ItemUpgrade::BuildAlreadyUpgradedItemsCatalogue(const Player* player, Paged
 
     for (uint8 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; i++)
         if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-            AddUpgradedItemToPagedData(item, player, pagedData, "背包");
+            AddUpgradedItemToPagedData(item, player, pagedData, "身上");
 
     for (uint8 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
         if (Bag* bag = player->GetBagByPos(i))
             for (uint32 j = 0; j < bag->GetBagSize(); j++)
                 if (Item* item = player->GetItemByPos(i, j))
-                    AddUpgradedItemToPagedData(item, player, pagedData, "包");
+                    AddUpgradedItemToPagedData(item, player, pagedData, "背包");
 
     for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; i++)
         if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
@@ -1384,8 +1384,8 @@ void ItemUpgrade::BuildItemUpgradeStatsCatalogue(const Player* player, const Ite
             std::string statTypeStr = StatTypeToString(upgradeStat->statType);
 
             std::ostringstream oss;
-            oss << "UPGRADED " << statTypeStr << " [RANK " << upgradeStat->statRank << "]";
-            oss << " " << "[" << upgradeStat->statModPct << "% increase - ";
+            oss << "升级 " << statTypeStr << " [装等 " << upgradeStat->statRank << "]";
+            oss << " " << "[" << upgradeStat->statModPct << "% 增加 - ";
             oss << "|cffb50505" << foundStat->ItemStatValue << "|r --> ";
             oss << "|cff056e3a" << CalculateModPct(foundStat->ItemStatValue, upgradeStat) << "|r]";
 
@@ -1466,7 +1466,8 @@ void ItemUpgrade::TakeRequirements(Player* player, const StatRequirementContaine
                 player->ModifyArenaPoints(-(int32)req.reqVal1);
                 break;
             case REQ_TYPE_ITEM:
-                player->DestroyItemCount((uint32)req.reqVal1, (uint32)req.reqVal2, true);
+                //player->DestroyItemCount((uint32)req.reqVal1, (uint32)req.reqVal2 - 1, true);
+                player->DestroyItemCount((uint32)req.reqVal1, (uint32)req.reqVal2 - 1, true, true);
                 break;
         }
     }
@@ -1626,9 +1627,9 @@ void ItemUpgrade::BuildStatsUpgradeByPctCatalogueBulk(const Player* player, cons
                         if (currentUpgrade->statRank == stat->statRank - 1)
                             willUpgrade = true;
                         else if (currentUpgrade->statRank >= stat->statRank)
-                            oss << "|cffb50505将不会|r 升级 " << statTypeStr << ": 已经获得物品等级";
+                            oss << "|cffb50505将不会|r 升级 " << statTypeStr << ": 已经获得该阶段升级后的物品等级";
                         else
-                            oss << "|cffb50505将不会|r 升级 " << statTypeStr << ": 需要获得以前的物品等级";
+                            oss << "|cffb50505将不会|r 升级 " << statTypeStr << ": 需要获得前一阶段升级的物品等级";
                     }
                 }
                 else
@@ -1636,7 +1637,7 @@ void ItemUpgrade::BuildStatsUpgradeByPctCatalogueBulk(const Player* player, cons
                     if (stat->statRank == 1)
                         willUpgrade = true;
                     else
-                        oss << "|cffb50505将不会|r 升级 " << statTypeStr << ": 需要获得以前的物品等级";
+                        oss << "|cffb50505将不会|r 升级 " << statTypeStr << ": 需要获得前一阶段升级的物品等级";
                 }
 
                 if (willUpgrade)
@@ -1711,7 +1712,10 @@ ItemUpgrade::StatRequirementContainer ItemUpgrade::BuildBulkRequirements(const s
             }
         }
     }
-
+    // 新增逻辑：为升级添加一个需求，即需要该物品本身 3 件
+    if (item->GetTemplate()->MaxCount == 0)
+        itemMap[item->GetEntry()] += 3;
+    
     if (copper != 0)
     {
         if (copper > MAX_MONEY_AMOUNT)
@@ -2014,15 +2018,16 @@ void ItemUpgrade::HandleDataReload(Player* player, bool apply)
 std::vector<Item*> ItemUpgrade::GetPlayerItems(const Player* player, bool inBankAlso) const
 {
     std::vector<Item*> items;
-    for (uint8 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; i++)
-        if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-            items.push_back(item);
+    //只包含身上已经穿上的装备
+    //for (uint8 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; i++)
+    //    if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+    //        items.push_back(item);
 
-    for (uint8 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
-        if (Bag* bag = player->GetBagByPos(i))
-            for (uint32 j = 0; j < bag->GetBagSize(); j++)
-                if (Item* item = player->GetItemByPos(i, j))
-                    items.push_back(item);
+    //for (uint8 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
+    //    if (Bag* bag = player->GetBagByPos(i))
+    //        for (uint32 j = 0; j < bag->GetBagSize(); j++)
+    //            if (Item* item = player->GetItemByPos(i, j))
+    //                items.push_back(item);
 
     for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; i++)
         if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
@@ -2264,8 +2269,8 @@ bool ItemUpgrade::TryAddItem(Player* player, uint32 entry, uint32 count, bool ad
         if (msg != EQUIP_ERR_OK)
         {
             std::ostringstream oss;
-            oss << "Trying to add " << count << "x " << ItemLink(player, proto, 0);
-            oss << " failed, check your inventory space and retry.";
+            oss << "尝试添加 " << count << "x " << ItemLink(player, proto, 0);
+            oss << " 失败.请检查背包空间并重试";
             SendMessage(player, oss.str());
             return false;
         }

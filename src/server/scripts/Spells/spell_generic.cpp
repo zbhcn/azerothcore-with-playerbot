@@ -976,8 +976,8 @@ class spell_gen_proc_reduced_above_60 : public AuraScript
 
     bool CheckProc(ProcEventInfo& eventInfo)
     {
-        // Xinef: mostly its 33.(3)% reduce by 70 and 66.(6)% by 80
-        if (eventInfo.GetActor() && eventInfo.GetActor()->GetLevel() > 60)
+        // Xinef: mostly its 33.(3)% reduce by 70 and 66.(6)% by 80//调整触发概率不受等级影响
+        if (eventInfo.GetActor() && eventInfo.GetActor()->GetLevel() > 80)
             if (roll_chance_f((eventInfo.GetActor()->GetLevel() - 60) * 3.33f))
                 return false;
 

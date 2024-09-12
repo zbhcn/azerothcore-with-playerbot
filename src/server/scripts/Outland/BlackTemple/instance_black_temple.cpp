@@ -570,6 +570,32 @@ public:
     }
 };
 
+// 39649 - Summon Shadowfiends
+class spell_black_temple_summon_shadowfiends : public SpellScript
+{
+    PrepareSpellScript(spell_black_temple_summon_shadowfiends);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_SUMMON_SHADOWFIENDS });
+    }
+
+    void HandleScriptEffect(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        for (uint8 i = 0; i < 11; i++)
+            caster->CastSpell(caster, SPELL_SUMMON_SHADOWFIENDS, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_black_temple_summon_shadowfiends::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
 void AddSC_instance_black_temple()
 {
     new instance_black_temple();
@@ -585,5 +611,6 @@ void AddSC_instance_black_temple()
     new spell_black_temple_consuming_strikes();
     new spell_black_temple_curse_of_vitality();
     new spell_black_temple_dementia();
+    RegisterSpellScript(spell_black_temple_summon_shadowfiends);
 }
 

@@ -50,7 +50,8 @@ HolyHealPriestStrategy::HolyHealPriestStrategy(PlayerbotAI* botAI) : GenericPrie
 
 NextAction** HolyHealPriestStrategy::getDefaultActions()
 {
-    return NextAction::array(0, new NextAction("shoot", ACTION_DEFAULT), nullptr);
+    //return NextAction::array(0, new NextAction("shoot", ACTION_DEFAULT), nullptr);//禁止射击默认策略
+    return NextAction::array(0, new NextAction("flash heal on party", ACTION_DEFAULT), nullptr);
 }
 
 void HolyHealPriestStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)

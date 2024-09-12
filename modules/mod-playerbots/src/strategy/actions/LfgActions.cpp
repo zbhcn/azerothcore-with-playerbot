@@ -307,6 +307,10 @@ bool LfgAcceptAction::Execute(Event event)
         return true;
     }
 
+    //防止宕机
+    if (event.getPacket().empty()) 
+        return false;
+
     WorldPacket p(event.getPacket());
 
     uint32 dungeon;

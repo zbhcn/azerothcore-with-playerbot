@@ -475,9 +475,20 @@ bool LootItem::AllowedForPlayer(Player const* player, ObjectGuid source) const
     }
 
     // check quest requirements
-    if (!(pProto->FlagsCu & ITEM_FLAGS_CU_IGNORE_QUEST_STATUS) && ((needs_quest || (pProto->StartQuest && player->GetQuestStatus(pProto->StartQuest) != QUEST_STATUS_NONE)) && !player->HasQuestForItem(itemid)))
+    if (!(pProto->FlagsCu & ITEM_FLAGS_CU_IGNORE_QUEST_STATUS))
     {
-        return false;
+        //  Don't drop quest items if the player is missing the relevant quest
+        if (needs_quest && !player->HasQuestForItem(itemid))
+            return false;
+
+        // for items that start quests
+        if (pProto->StartQuest)
+        {
+            // Don't drop the item if the player has already finished the quest OR player already has the item in their inventory, and that item is unique OR the player has not finished a prerequisite quest
+            uint32 prevQuestId = sObjectMgr->GetQuestTemplate(pProto->StartQuest) ? sObjectMgr->GetQuestTemplate(pProto->StartQuest)->GetPrevQuestId() : 0;
+            if (player->GetQuestStatus(pProto->StartQuest) != QUEST_STATUS_NONE || (player->HasItemCount(itemid, pProto->MaxCount) && pProto->MaxCount) || (prevQuestId && !player->GetQuestRewardStatus(prevQuestId)))
+                return false;
+        }
     }
 
     if (!sScriptMgr->OnAllowedForPlayerLootCheck(player, source))
@@ -582,6 +593,43 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
 
     sScriptMgr->OnAfterLootTemplateProcess(this, tab, store, lootOwner, personal, noEmptyError, lootMode);
 
+    // 自定义全局掉落逻辑
+    struct SpecialItem {
+        uint32 id;        // 物品ID
+        float chance;     // 掉落几率
+        uint32 minCount;  // 最小掉落数量
+        uint32 maxCount;  // 最大掉落数量
+    };
+
+    std::vector<SpecialItem> specialItems = {
+        {66606, 0.01f, 1, 3},  // 现有物品ID，1% 的概率
+        {90003, 0.01f, 1, 1}   // 新物品ID，1% 的概率
+    };
+
+    if (lootOwner->GetMap() && lootOwner->GetMap()->IsRaidOrHeroicDungeon() && lootSource &&
+        lootSource->ToCreature() && lootSource->ToCreature()->GetLevel() >= 70 &&
+        lootSource->ToCreature()->GetMaxHealth() > 15000)
+    {
+        for (const auto& item : specialItems)
+        {
+            if (urand(1, 100) <= item.chance * 100)  // 判断是否掉落
+            {
+                // 使用适当的参数创建 LootStoreItem 对象
+                LootStoreItem lootItem(
+                    item.id,            // 物品ID
+                    0,                 // 参考ID（不引用）
+                    item.chance * 100,  // 掉落几率（转换为百分比）
+                    false,             // 是否需要任务（此处为 false，因为不依赖于任务）
+                    lootMode,          // 掉落模式
+                    0,                 // 掉落分组ID（这里假设使用0）
+                    item.minCount,     // 最小掉落数量
+                    item.maxCount      // 最大掉落数量
+                );
+
+                AddItem(lootItem);  // 将物品添加到战利品中
+            }
+        }
+    }
     // Setting access rights for group loot case
     Group* group = lootOwner->GetGroup();
     if (!personal && group)
@@ -1003,7 +1051,7 @@ ByteBuffer& operator<<(ByteBuffer& b, LootView const& lv)
 
     b << uint32(l.gold);                                    //gold
 
-    size_t count_pos = b.wpos();                            // pos of item count byte
+    std::size_t count_pos = b.wpos();                            // pos of item count byte
     b << uint8(0);                                          // item count placeholder
 
     switch (lv.permission)
@@ -1542,7 +1590,7 @@ LootTemplate::~LootTemplate()
         Entries.pop_back();
     }
 
-    for (size_t i = 0; i < Groups.size(); ++i)
+    for (std::size_t i = 0; i < Groups.size(); ++i)
         delete Groups[i];
     Groups.clear();
 }
